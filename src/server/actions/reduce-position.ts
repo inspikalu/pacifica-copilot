@@ -20,17 +20,21 @@ export async function reducePosition(input: {
   const amount = Math.floor(input.size * 10000) / 10000;
 
   try {
-    const result = await pacifica.placeOrder({
-      account: account.pacificaAccount,
-      symbol: input.symbol,
-      side: input.side === "LONG" ? "ask" : "bid",
-      amount,
-      price: input.price,
-      order_type: "market",
-      tif: "ioc",
-      reduce_only: true,
-      privateKeyBase58: input.privateKeyBase58,
-    });
+    const result = await pacifica.createOrder(
+      {
+        symbol: input.symbol,
+        side: input.side === "LONG" ? "ask" : "bid",
+        amount,
+        price: input.price,
+        order_type: "market",
+        tif: "ioc",
+        reduce_only: true,
+      },
+      {
+        account: account.pacificaAccount,
+        privateKeyBase58: input.privateKeyBase58,
+      }
+    );
 
     await db.actionLog.create({
       data: {

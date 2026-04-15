@@ -23,7 +23,7 @@ export async function pacificaGet<T>(path: string, params?: Record<string, strin
 
   const responseText = await response.text();
   let json: PacificaResponse<T>;
-  
+
   try {
     json = JSON.parse(responseText);
   } catch (err) {
@@ -37,6 +37,13 @@ export async function pacificaGet<T>(path: string, params?: Record<string, strin
   return json.data;
 }
 
+const BUILDER_CODE_SUPPORTED_TYPES = new Set([
+  "create_order",
+  "create_market_order",
+  "create_stop_order",
+  "set_position_tpsl",
+]);
+
 export async function pacificaPost<T>(
   path: string,
   type: string,
@@ -47,15 +54,22 @@ export async function pacificaPost<T>(
     agentWallet?: string;
   }
 ): Promise<T> {
-  const { signature, timestamp, expiryWindow } = signOperation(type, data, auth.privateKeyBase58);
+  const dataWithBuilder =
+    env.PACIFICA_BUILDER_ENABLED &&
+      env.PACIFICA_BUILDER_CODE &&
+      BUILDER_CODE_SUPPORTED_TYPES.has(type)
+      ? { ...data, builder_code: env.PACIFICA_BUILDER_CODE }
+      : data;
 
-  const payload = {
+  const { signature, timestamp, expiryWindow } = signOperation(type, dataWithBuilder, auth.privateKeyBase58);
+
+  const payload: any = {
     account: auth.account,
     agent_wallet: auth.agentWallet ?? null,
     signature,
     timestamp,
     expiry_window: expiryWindow,
-    ...data,
+    ...dataWithBuilder,
   };
 
   const response = await fetch(`${env.PACIFICA_API_URL}${path}`, {
@@ -70,7 +84,7 @@ export async function pacificaPost<T>(
 
   const responseText = await response.text();
   let json: PacificaResponse<T>;
-  
+
   try {
     json = JSON.parse(responseText);
   } catch (err) {
@@ -88,12 +102,12 @@ export const pacifica = {
   getAccountInfo: (account: string) => pacificaGet<any>("/account", { account }),
   getPositions: (account: string) => pacificaGet<any[]>("/positions", { account }),
   getOpenOrders: (account: string) => pacificaGet<any[]>("/orders", { account }),
-  
+
   createOrder: (data: any, auth: any) => pacificaPost("/orders/create", "create_order", data, auth),
   cancelOrder: (data: any, auth: any) => pacificaPost("/orders/cancel", "cancel_order", data, auth),
   cancelAllOrders: (data: any, auth: any) => pacificaPost("/orders/cancel_all", "cancel_all_orders", data, auth),
   setPositionTpsl: (data: any, auth: any) => pacificaPost("/positions/tpsl", "set_position_tpsl", data, auth),
-  
-  getTradeHistory: (account: string, params?: { symbol?: string; limit?: number }) => 
+
+  getTradeHistory: (account: string, params?: { symbol?: string; limit?: number }) =>
     pacificaGet<any[]>("/trades/history", { account, ...params } as any),
 };

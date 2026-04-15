@@ -15,11 +15,15 @@ export async function cancelAllOrders(input: {
   if (!account) throw new Error("No active account for cancel action.");
 
   try {
-    const result = await pacifica.cancelOrders({
-      account: account.pacificaAccount,
-      symbol: input.allSymbols ? "all" : (input.symbol || "all"),
-      privateKeyBase58: input.privateKeyBase58,
-    });
+    const result = await pacifica.cancelAllOrders(
+      {
+        symbol: input.allSymbols ? "all" : (input.symbol || "all"),
+      },
+      {
+        account: account.pacificaAccount,
+        privateKeyBase58: input.privateKeyBase58,
+      }
+    );
 
     await db.actionLog.create({
       data: {

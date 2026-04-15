@@ -17,14 +17,18 @@ export async function setTpsl(input: {
   if (!account) throw new Error("No active account for TP/SL action.");
 
   try {
-    const result = await pacifica.setTriggerOrders({
-      account: account.pacificaAccount,
-      symbol: input.symbol,
-      side: input.side === "LONG" ? "ask" : "bid",
-      stop_loss_price: input.stopLoss,
-      take_profit_price: input.takeProfit,
-      privateKeyBase58: input.privateKeyBase58,
-    });
+    const result = await pacifica.setPositionTpsl(
+      {
+        symbol: input.symbol,
+        side: input.side === "LONG" ? "ask" : "bid",
+        stop_loss_price: input.stopLoss,
+        take_profit_price: input.takeProfit,
+      },
+      {
+        account: account.pacificaAccount,
+        privateKeyBase58: input.privateKeyBase58,
+      }
+    );
 
     await db.actionLog.create({
       data: {
