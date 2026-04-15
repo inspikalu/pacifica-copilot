@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+:root {
+  /* High-Performance Institutional Palette */
+  --background: #050808;
+  --surface: #0a0c0d;
+  --surface-raised: #0f1214;
+  --foreground: #e2e8f0;
+  --foreground-muted: #64748b;
+  --foreground-subtle: #202936;
+
+  /* Accent: Pacifica Cyan */
+  --accent: #00f2ff;
+  --accent-dim: rgba(0, 242, 255, 0.08);
+  --accent-border: rgba(0, 242, 255, 0.2);
+  --accent-glow: rgba(0, 242, 255, 0.15);
+
+  /* Status Colors */
+  --danger: #ff3e3e;
+  --danger-dim: rgba(255, 62, 62, 0.08);
+  --warning: #ffb000;
+  --success: #00f2ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--foreground);
+  font-family: var(--font-skatefi), "SF Mono", "Fira Code", monospace;
+  background: var(--background);
+  background-image: 
+    linear-gradient(rgba(0, 242, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 242, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  font-variant-numeric: tabular-nums;
+  overflow-x: hidden;
+}
+
+/* CRT Scanline Effect Overlay */
+body::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+              linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+  z-index: 9999;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+  opacity: 0.25;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  outline: none;
+}
+
+/* --- Hyperliquid-style utility classes --- */
+@layer utilities {
+  .hl-card {
+    background: var(--surface);
+    border: 1px solid var(--accent-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hl-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.3;
+  }
+
+  /* Raised surface for nested panels */
+  .hl-panel {
+    background: var(--surface-raised);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 3px;
+  }
+
+  /* Accent badge */
+  .hl-badge {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-border);
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 2px;
+    text-shadow: 0 0 5px var(--accent-glow);
+  }
+
+  /* Deprecated glass — redirect to hl-card */
+  .glass {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  /* Deprecated vault-card — redirect to hl-card */
+  .vault-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  /* Status dot */
+  .status-dot-live {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.9); }
+  }
+
+  /* Monospaced numeric value style */
+  .hl-num {
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* Horizontal rule divider */
+  .hl-divider {
+    border: none;
+    border-top: 1px solid var(--accent-border);
+    opacity: 0.5;
+  }
+
+  /* Table row hover */
+  .hl-row:hover {
+    background: rgba(0, 242, 255, 0.03);
+  }
+}

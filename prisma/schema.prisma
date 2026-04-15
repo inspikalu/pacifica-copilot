@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TrackedAccount {
+  id                String             @id @default(cuid())
+  userId            String
+  label             String
+  pacificaAccount   String
+  agentWallet       String?
+  encryptedAgentKey String?
+  keyIv             String?
+  isActive          Boolean            @default(true)
+  lastSyncedAt      DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  agentKeyAuthTag   String?
+  agentKeySalt      String?
+  snapshots         AccountSnapshot[]
+  actions           ActionLog[]
+  orders            OpenOrder[]
+  positions         PositionSnapshot[]
+  alerts            RiskAlert[]
+  trades            TradeFill[]
+
+  @@unique([userId, pacificaAccount])
+  @@index([userId])
+}
+
+model AccountSnapshot {
+  id                String         @id @default(cuid())
+  trackedAccountId  String
+  equity            Decimal        @db.Decimal(24, 8)
+  balance           Decimal        @db.Decimal(24, 8)
+  unrealizedPnl     Decimal        @db.Decimal(24, 8)
+  marginUsed        Decimal?       @db.Decimal(24, 8)
+  riskScore         Int
+  snapshotPositions Json?
+  snapshotAt        DateTime
+  createdAt         DateTime       @default(now())
+  trackedAccount    TrackedAccount @relation(fields: [trackedAccountId], references: [id], onDelete: Cascade)
+
+  @@index([trackedAccountId, snapshotAt])
+}
+
+model PositionSnapshot {
+  id               String         @id @default(cuid())
+  trackedAccountId String
+  symbol           String
+  side             PositionSide
+  size             Decimal        @db.Decimal(24, 8)
+  entryPrice       Decimal        @db.Decimal(24, 8)
+  markPrice        Decimal        @db.Decimal(24, 8)
+  leverage         Decimal        @db.Decimal(12, 4)
+  unrealizedPnl    Decimal        @db.Decimal(24, 8)
+  liquidationPrice Decimal?       @db.Decimal(24, 8)
+  marginMode       MarginMode?
+  updatedAt        DateTime       @updatedAt
+  trackedAccount   TrackedAccount @relation(fields: [trackedAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([trackedAccountId, symbol, side])
+}
+
+model OpenOrder {
+  id               String         @id @default(cuid())
+  trackedAccountId String
+  orderId          BigInt?
+  clientOrderId    String?
+  symbol           String
+  side             PositionSide
+  price            Decimal?       @db.Decimal(24, 8)
+  size             Decimal        @db.Decimal(24, 8)
+  orderType        String
+  tif              String?
+  reduceOnly       Boolean        @default(false)
+  status           String
+  updatedAt        DateTime       @updatedAt
+  trackedAccount   TrackedAccount @relation(fields: [trackedAccountId], references: [id], onDelete: Cascade)
+
+  @@index([trackedAccountId, symbol])
+}
+
+model TradeFill {
+  id               String         @id @default(cuid())
+  trackedAccountId String
+  tradeId          String         @unique
+  symbol           String
+  side             PositionSide
+  price            Decimal        @db.Decimal(24, 8)
+  size             Decimal        @db.Decimal(24, 8)
+  realizedPnl      Decimal?       @db.Decimal(24, 8)
+  fee              Decimal?       @db.Decimal(24, 8)
+  executedAt       DateTime
+  createdAt        DateTime       @default(now())
+  trackedAccount   TrackedAccount @relation(fields: [trackedAccountId], references: [id], onDelete: Cascade)
+
+  @@index([trackedAccountId, executedAt])
+}
+
+model RiskAlert {
+  id               String         @id @default(cuid())
+  trackedAccountId String
+  type             AlertType
+  severity         AlertSeverity
+  title            String
+  message          String
+  symbol           String?
+  status           AlertStatus    @default(ACTIVE)
+  triggeredAt      DateTime       @default(now())
+  resolvedAt       DateTime?
+  metadata         Json?
+  trackedAccount   TrackedAccount @relation(fields: [trackedAccountId], references: [id], onDelete: Cascade)
+
+  @@index([trackedAccountId, status, triggeredAt])
+}
+
+model ActionLog {
+  id               String         @id @default(cuid())
+  trackedAccountId String
+  actionType       ActionType
+  symbol           String?
+  requestPayload   Json?
+  responsePayload  Json?
+  status           ActionStatus   @default(PENDING)
+  errorMessage     String?
+  createdAt        DateTime       @default(now())
+  trackedAccount   TrackedAccount @relation(fields: [trackedAccountId], references: [id], onDelete: Cascade)
+
+  @@index([trackedAccountId, createdAt])
+}
+
+enum PositionSide {
+  LONG
+  SHORT
+}
+
+enum MarginMode {
+  CROSS
+  ISOLATED
+}
+
+enum AlertType {
+  HIGH_LEVERAGE
+  HIGH_CONCENTRATION
+  DRAWDOWN
+  LIQUIDATION_PROXIMITY
+  HIGH_FUNDING_EXPOSURE
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  RESOLVED
+  DISMISSED
+}
+
+enum ActionType {
+  SET_TPSL
+  REDUCE_POSITION
+  CANCEL_ALL
+  PANIC_MODE
+}
+
+enum ActionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}

@@ -1,0 +1,50 @@
+{
+  "name": "pacifica-risk-copilot",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.6.0",
+    "@solana/wallet-adapter-base": "^0.9.27",
+    "@solana/wallet-adapter-react": "^0.15.39",
+    "@solana/wallet-adapter-react-ui": "^0.9.39",
+    "@solana/wallet-standard-util": "^1.1.2",
+    "@solana/web3.js": "^1.98.4",
+    "bs58": "^6.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "jose": "^6.2.2",
+    "lucide-react": "^0.511.0",
+    "next": "^15.3.0",
+    "openai": "^6.34.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^2.15.2",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.3.0",
+    "tweetnacl": "^1.0.3",
+    "ws": "^8.20.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@tailwindcss/postcss": "^4.1.3",
+    "@types/bs58": "^4.0.4",
+    "@types/node": "^22.14.1",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
+    "@types/ws": "^8.18.1",
+    "eslint": "^9.24.0",
+    "eslint-config-next": "^15.3.0",
+    "prisma": "^6.6.0",
+    "tailwindcss": "^4.1.3",
+    "typescript": "^5.8.3"
+  }
+}
