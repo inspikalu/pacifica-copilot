@@ -81,7 +81,7 @@ async function refreshLiveState(trackedAccountId: string) {
       size: new Prisma.Decimal(order.amount || 0),
       orderType: order.type || "LIMIT",
       reduceOnly: order.reduce_only === true,
-      status: order.status || "OPEN",
+      status: (order.status || "OPEN").toUpperCase(),
     }));
 
     const temporaryPositionRows = buildPositionRows(mappedPositions);
@@ -532,6 +532,6 @@ export async function getSnapshotData(snapshotId: string): Promise<DashboardData
     })),
     alerts: [], 
     equitySeries: [], 
-    insights: await generateAgentInsights(positions, [], snapshot.riskScore),
+    insights: await generateAgentInsights(positions, [], snapshot.riskScore).catch(() => []),
   };
 }

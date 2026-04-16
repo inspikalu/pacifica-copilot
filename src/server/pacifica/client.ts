@@ -103,7 +103,10 @@ export const pacifica = {
   getPositions: (account: string) => pacificaGet<any[]>("/positions", { account }),
   getOpenOrders: (account: string) => pacificaGet<any[]>("/orders", { account }),
 
+  // Limit order — POST /api/v1/orders/create, type: "create_order"
   createOrder: (data: any, auth: any) => pacificaPost("/orders/create", "create_order", data, auth),
+  // Market order — POST /api/v1/orders/create_market, type: "create_market_order"
+  createMarketOrder: (data: any, auth: any) => pacificaPost("/orders/create_market", "create_market_order", data, auth),
   cancelOrder: (data: any, auth: any) => pacificaPost("/orders/cancel", "cancel_order", data, auth),
   cancelAllOrders: (data: any, auth: any) => pacificaPost("/orders/cancel_all", "cancel_all_orders", data, auth),
   setPositionTpsl: (data: any, auth: any) => pacificaPost("/positions/tpsl", "set_position_tpsl", data, auth),

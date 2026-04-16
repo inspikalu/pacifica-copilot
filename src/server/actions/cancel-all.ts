@@ -17,7 +17,8 @@ export async function cancelAllOrders(input: {
   try {
     const result = await pacifica.cancelAllOrders(
       {
-        symbol: input.allSymbols ? "all" : (input.symbol || "all"),
+        all_symbols: input.allSymbols ? true : undefined,
+        symbol: !input.allSymbols && input.symbol ? input.symbol : undefined,
       },
       {
         account: account.pacificaAccount,

@@ -2,12 +2,12 @@ import type { ReactNode } from "react";
 
 interface Column<T> {
   key: string;
-  header: string;
+  header: ReactNode;
   render: (row: T) => ReactNode;
 }
 
 interface DataTableProps<T> {
-  title: string;
+  title: ReactNode;
   rows: T[];
   columns: Column<T>[];
   getRowKey?: (row: T, index: number) => string;

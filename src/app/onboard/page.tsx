@@ -5,7 +5,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Shield, Key, Wallet, ArrowRight, LoaderCircle, CheckCircle2 } from "lucide-react";
+import { Shield, Key, Wallet, ArrowRight, LoaderCircle, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import bs58 from "bs58";
 
 import { encryptClient } from "@/lib/crypto-client";
@@ -17,6 +17,8 @@ export default function OnboardPage() {
 
   const [step, setStep] = useState(1);
   const [isPending, setIsPending] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+  const [showPassphrase, setShowPassphrase] = useState(false);
 
   // Form states
   const [accountData, setAccountData] = useState({
@@ -208,25 +210,43 @@ export default function OnboardPage() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] uppercase tracking-widest text-red-400 font-bold">Agent Private Key</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Encrypted client-side before submission"
-                  className="w-full hl-panel px-4 py-3 text-sm font-mono border-red-900/40 focus:border-red-500 outline-none"
-                  value={accountData.agentPrivateKey}
-                  onChange={(e) => setAccountData({ ...accountData, agentPrivateKey: e.target.value })}
-                />
+                <div className="relative">
+                  <input
+                    type={showKey ? "text" : "password"}
+                    required
+                    placeholder="Encrypted client-side before submission"
+                    className="w-full hl-panel px-4 py-3 text-sm font-mono border-red-900/40 focus:border-red-500 outline-none pr-10"
+                    value={accountData.agentPrivateKey}
+                    onChange={(e) => setAccountData({ ...accountData, agentPrivateKey: e.target.value })}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowKey(p => !p)} 
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--foreground-muted)] hover:text-white"
+                  >
+                    {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] uppercase tracking-widest text-[var(--accent)] font-bold">Session Passphrase</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Master key to unlock your Agent"
-                  className="w-full hl-panel px-4 py-3 text-sm focus:border-[var(--accent)] outline-none"
-                  value={accountData.passphrase}
-                  onChange={(e) => setAccountData({ ...accountData, passphrase: e.target.value })}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassphrase ? "text" : "password"}
+                    required
+                    placeholder="Master key to unlock your Agent"
+                    className="w-full hl-panel px-4 py-3 text-sm focus:border-[var(--accent)] outline-none pr-10"
+                    value={accountData.passphrase}
+                    onChange={(e) => setAccountData({ ...accountData, passphrase: e.target.value })}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassphrase(p => !p)} 
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--foreground-muted)] hover:text-white"
+                  >
+                    {showPassphrase ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
                 <p className="text-[9px] text-[var(--foreground-muted)] opacity-60 mt-1 uppercase tracking-widest leading-relaxed">
                   Lost passphrases cannot be recovered. Your private key is encrypted with this.
                 </p>

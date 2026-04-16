@@ -1,11 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Activity, AlertTriangle, LoaderCircle, Shield, ShieldAlert, Wallet, X, Settings, Radio, ArrowLeft, ExternalLink, RotateCcw, Key } from "lucide-react";
+import { Activity, AlertTriangle, LoaderCircle, Shield, ShieldAlert, Wallet, X, Settings, Radio, ArrowLeft, ExternalLink, RotateCcw, Key, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useState, useMemo, useTransition, useEffect, FormEvent } from "react";
 import { toast } from "sonner";
 
+import { encryptClient } from "@/lib/crypto-client";
+import { onboardAccount } from "@/server/actions/onboard";
 import { EquityChart } from "@/components/charts/equity-chart";
 import { AgentFeed } from "@/components/dashboard/agent-feed";
 import { AlertList } from "@/components/dashboard/alert-list";
@@ -60,6 +62,17 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
   const [passphrase, setPassphrase] = useState<string>("");
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: string; payload?: any } | null>(null);
+  
+  const [showUnlockPassphrase, setShowUnlockPassphrase] = useState(false);
+  const [showUpdateKey, setShowUpdateKey] = useState(false);
+  const [showUpdatePassphrase, setShowUpdatePassphrase] = useState(false);
+
+  const [isUpdatingAgent, setIsUpdatingAgent] = useState(false);
+  const [updateAgentForm, setUpdateAgentForm] = useState({
+    agentWallet: data.account.agentWallet ?? "",
+    agentPrivateKey: "",
+    passphrase: ""
+  });
 
   useEffect(() => {
     setSelectedPosition((current) => {
@@ -147,6 +160,12 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
 
       const json = await response.json();
       if (!response.ok) {
+        const errStr = (json.error ?? "").toLowerCase();
+        if (errStr.includes("decrypt") || errStr.includes("auth tag") || errStr.includes("passphrase")) {
+          setPassphrase("");
+          setIsUnlockModalOpen(true); // Re-prompt instantly
+          throw new Error("Invalid Session Passphrase. Try again.");
+        }
         throw new Error(json.error ?? "Operation failed on Pacifica side.");
       }
       
@@ -164,6 +183,33 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
   async function handleConnectAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await submitJson("/api/account", connectForm, "Tracked account updated.");
+  }
+
+  async function handleUpdateAgent(e: FormEvent) {
+    e.preventDefault();
+    startTransition(async () => {
+      try {
+        const encrypted = await encryptClient(updateAgentForm.agentPrivateKey, updateAgentForm.passphrase);
+        const res = await onboardAccount({
+          label: data.account.label,
+          pacificaAccount: data.account.accountAddress, // Updates existing row
+          agentWallet: updateAgentForm.agentWallet,
+          encryptedAgentKey: encrypted.ciphertext,
+          keyIv: encrypted.iv,
+          agentKeySalt: encrypted.salt,
+          agentKeyAuthTag: encrypted.authTag,
+        });
+        
+        if (res.success) {
+          toast.success("Agent credentials updated securely.");
+          setIsUpdatingAgent(false);
+          setUpdateAgentForm(f => ({ ...f, agentPrivateKey: "", passphrase: "" }));
+          router.refresh();
+        }
+      } catch (err: any) {
+        toast.error(err.message || "Failed to update agent credentials");
+      }
+    });
   }
 
   // Wrapper for all destructive actions that require an unlocked agent
@@ -402,13 +448,22 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
              </div>
 
              <form onSubmit={handleUnlockConfirm} className="space-y-4">
-                <input 
-                   type="password"
-                   name="passphrase"
-                   autoFocus
-                   placeholder="Enter Passphrase"
-                   className="w-full hl-panel px-4 py-3 text-center text-sm focus:border-[var(--accent)] outline-none"
-                />
+                <div className="relative">
+                   <input 
+                      type={showUnlockPassphrase ? "text" : "password"}
+                      name="passphrase"
+                      autoFocus
+                      placeholder="Enter Passphrase"
+                      className="w-full hl-panel px-4 py-3 text-center text-sm focus:border-[var(--accent)] outline-none pr-10"
+                   />
+                   <button 
+                     type="button" 
+                     onClick={() => setShowUnlockPassphrase(p => !p)} 
+                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--foreground-muted)] hover:text-white"
+                   >
+                     {showUnlockPassphrase ? <EyeOff size={16} /> : <Eye size={16} />}
+                   </button>
+                </div>
                 <div className="flex gap-3 pt-2">
                    <button 
                       type="button"
@@ -495,7 +550,7 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
           <div className="grid gap-3 md:grid-cols-2">
             <AlertList alerts={data.alerts} />
             {!isReadOnly && isSettingsOpen && (
-              <form className="hl-card p-5 flex flex-col" onSubmit={handleConnectAccount}>
+              <div className="hl-card p-5 flex flex-col">
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <span className="text-[11px] uppercase tracking-[0.15em] text-[var(--foreground-muted)] font-medium">Settings</span>
                   <button 
@@ -505,25 +560,92 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
                     Lock Agent
                   </button>
                 </div>
-                <div className="space-y-4 flex-1">
-                   <div className="hl-panel p-3 border-l-2 border-l-[var(--accent)]">
-                      <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-muted)] mb-1">Authenticated Wallet</p>
-                      <p className="text-[11px] font-mono text-[var(--foreground)] truncate">{data.account.agentWallet || "Not Connected"}</p>
-                   </div>
-                  <div className="space-y-1.5 opacity-40 pointer-events-none">
-                    <p className="text-[9px] uppercase tracking-widest text-[var(--foreground-muted)]">Active Pacifica Acc</p>
-                    <p className="text-xs font-mono">{data.account.accountAddress}</p>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-col gap-2">
-                   <button 
-                     onClick={() => router.push('/onboard')}
-                     className="w-full py-2 text-[11px] uppercase tracking-widest font-semibold border border-[var(--border)] text-[var(--foreground-muted)] hover:border-white/20 hover:text-[var(--foreground)] transition-colors rounded-sm"
-                   >
-                     Switch Account
-                   </button>
-                </div>
-              </form>
+
+                {!isUpdatingAgent ? (
+                  <>
+                    <div className="space-y-4 flex-1">
+                       <div className="hl-panel p-3 border-l-2 border-l-[var(--accent)] flex justify-between items-center group">
+                          <div className="overflow-hidden pr-2">
+                             <p className="text-[9px] uppercase tracking-[0.2em] text-[var(--foreground-muted)] mb-1">Authenticated Wallet</p>
+                             <p className="text-[11px] font-mono text-[var(--foreground)] truncate">{data.account.agentWallet || "Not Connected"}</p>
+                          </div>
+                          <button onClick={() => setIsUpdatingAgent(true)} className="text-[10px] text-[var(--accent)] uppercase tracking-widest hover:underline whitespace-nowrap opacity-50 group-hover:opacity-100 transition-opacity">Edit</button>
+                       </div>
+                      <div className="space-y-1.5 opacity-40 pointer-events-none">
+                        <p className="text-[9px] uppercase tracking-widest text-[var(--foreground-muted)]">Active Pacifica Acc</p>
+                        <p className="text-xs font-mono">{data.account.accountAddress}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-col gap-2">
+                       <button 
+                         onClick={() => router.push('/onboard')}
+                         className="w-full py-2 text-[11px] uppercase tracking-widest font-semibold border border-[var(--border)] text-[var(--foreground-muted)] hover:border-white/20 hover:text-[var(--foreground)] transition-colors rounded-sm"
+                       >
+                         Switch Account
+                       </button>
+                    </div>
+                  </>
+                ) : (
+                  <form onSubmit={handleUpdateAgent} className="space-y-4 animate-in fade-in">
+                     <p className="text-[10px] text-[var(--accent)] uppercase tracking-widest font-semibold pb-1 border-b border-[var(--border)]">Update Agent Credentials</p>
+                     
+                     <label className="block">
+                       <span className="text-[9px] text-[var(--foreground-muted)] uppercase tracking-wider">Agent Wallet Address</span>
+                       <input
+                         required
+                         className="mt-1 w-full hl-panel px-3 py-2 text-[11px] font-mono focus:border-[var(--accent)] outline-none"
+                         value={updateAgentForm.agentWallet}
+                         onChange={(e) => setUpdateAgentForm(f => ({ ...f, agentWallet: e.target.value }))}
+                       />
+                     </label>
+
+                     <label className="block">
+                        <span className="text-[9px] text-red-400 uppercase tracking-wider">New Private Key</span>
+                        <div className="relative mt-1">
+                          <input
+                            type={showUpdateKey ? "text" : "password"}
+                            required
+                            className="w-full hl-panel px-3 py-2 text-[11px] font-mono focus:border-red-500 outline-none pr-8"
+                            value={updateAgentForm.agentPrivateKey}
+                            onChange={(e) => setUpdateAgentForm(f => ({ ...f, agentPrivateKey: e.target.value }))}
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => setShowUpdateKey(p => !p)} 
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--foreground-muted)] hover:text-white"
+                          >
+                            {showUpdateKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </div>
+                      </label>
+
+                     <label className="block">
+                        <span className="text-[9px] text-[var(--accent)] uppercase tracking-wider">Session Passphrase (for encryption)</span>
+                        <div className="relative mt-1">
+                          <input
+                            type={showUpdatePassphrase ? "text" : "password"}
+                            required
+                            className="w-full hl-panel px-3 py-2 text-[11px] focus:border-[var(--accent)] outline-none pr-8"
+                            value={updateAgentForm.passphrase}
+                            onChange={(e) => setUpdateAgentForm(f => ({ ...f, passphrase: e.target.value }))}
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => setShowUpdatePassphrase(p => !p)} 
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--foreground-muted)] hover:text-white"
+                          >
+                            {showUpdatePassphrase ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </div>
+                      </label>
+
+                     <div className="flex gap-2 pt-2">
+                        <button type="button" onClick={() => setIsUpdatingAgent(false)} className="flex-1 py-2 text-[10px] uppercase tracking-widest border border-[var(--border)] text-[var(--foreground-muted)] hover:border-white/20 bg-transparent rounded-sm transition-colors">Cancel</button>
+                        <button type="submit" disabled={isPending} className="flex-1 py-2 text-[10px] uppercase tracking-widest bg-[var(--accent)] text-black hover:bg-[var(--accent-hover)] rounded-sm disabled:opacity-50 transition-colors">Save</button>
+                     </div>
+                  </form>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -541,7 +663,11 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
       <div className="mt-3 grid gap-3 xl:grid-cols-[1fr_320px]">
         <div className="space-y-3">
           <DataTable
-            title="Positions"
+            title={
+              <RiskTooltip title="Positions" description="Your active, live market exposure resulting from executed orders.">
+                Positions
+              </RiskTooltip>
+            }
             rows={livePositions}
             columns={[
               { key: "symbol", header: "Symbol", render: (row) => <span className="font-medium text-[var(--foreground)]">{row.symbol}</span> },
@@ -571,12 +697,16 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
 
           <div className="grid gap-3 xl:grid-cols-2">
             <DataTable
-              title="Open Orders"
+              title={
+                <RiskTooltip title="Open Orders" description="Resting limit or stop orders that have not yet been executed by the market.">
+                  Open Orders
+                </RiskTooltip>
+              }
               rows={data.orders}
               columns={[
                 { key: "symbol",    header: "Symbol",    render: (row) => row.symbol },
                 { key: "type",      header: "Type",      render: (row) => row.orderType },
-                { key: "side",      header: "Side",      render: (row) => <span className={row.side === "bid" ? "text-[var(--accent)]" : "text-red-400"}>{row.side}</span> },
+                { key: "side",      header: "Side",      render: (row) => <span className={row.side === "LONG" ? "text-[var(--accent)]" : "text-red-400"}>{row.side}</span> },
                 { key: "price",     header: "Price",     render: (row) => (row.price ? currency(row.price) : "Market") },
                 { key: "size",      header: "Size",      render: (row) => row.size.toString() },
                 { key: "rdOnly",    header: "Reduce",    render: (row) => (row.reduceOnly ? "Yes" : "No") },
@@ -588,7 +718,7 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
               rows={data.trades}
               columns={[
                 { key: "symbol", header: "Symbol", render: (row) => row.symbol },
-                { key: "side",   header: "Side",   render: (row) => <span className={row.side === "bid" ? "text-[var(--accent)]" : "text-red-400"}>{row.side}</span> },
+                { key: "side",   header: "Side",   render: (row) => <span className={row.side === "LONG" ? "text-[var(--accent)]" : "text-red-400"}>{row.side}</span> },
                 { key: "price",  header: "Price",  render: (row) => currency(row.price) },
                 { key: "size",   header: "Size",   render: (row) => row.size.toString() },
                 { key: "rpnl",   header: "rPnL",   render: (row) => <span className={(row.realizedPnl ?? 0) >= 0 ? "text-[var(--accent)]" : "text-red-400"}>{currency(row.realizedPnl ?? 0)}</span> },
