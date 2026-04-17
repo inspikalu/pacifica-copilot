@@ -13,6 +13,10 @@ export async function middleware(request: NextRequest) {
   const session = await decrypt(cookie);
 
   // 3. Redirect logic
+  if (path === "/") {
+    return NextResponse.redirect(new URL("/dashboard", request.nextUrl));
+  }
+
   if (!isPublicPath && !session) {
     return NextResponse.redirect(new URL("/onboard", request.nextUrl));
   }

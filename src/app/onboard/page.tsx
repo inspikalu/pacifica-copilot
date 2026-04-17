@@ -102,7 +102,7 @@ export default function OnboardPage() {
 
       if (res.success) {
         toast.success("Account connected successfully");
-        router.push("/");
+        router.push("/dashboard");
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to save account");

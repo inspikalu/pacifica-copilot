@@ -238,6 +238,7 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
        if (pendingAction.type === 'REDUCE') handleReducePosition();
        if (pendingAction.type === 'CANCEL') handleCancelAll();
        if (pendingAction.type === 'PANIC') handleTriggerPanic();
+       if (pendingAction.type === 'AGENT_ACTION') handleAgentAction(pendingAction.payload);
        setPendingAction(null);
     }
   }
@@ -363,7 +364,7 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
         {isReplay ? (
           <div className="flex gap-2">
             <Link
-              href="/"
+              href="/dashboard"
               className="flex items-center gap-2 px-4 py-2 text-[11px] uppercase tracking-widest font-semibold border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 transition-colors rounded-sm"
             >
               <RotateCcw className="h-3.5 w-3.5" />
@@ -373,7 +374,7 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
         ) : isReadOnly ? (
           <div className="flex gap-2">
             <Link
-              href="/"
+              href="/dashboard"
               className="flex items-center gap-2 px-4 py-2 text-[11px] uppercase tracking-widest font-semibold border border-[var(--border)] text-[var(--foreground-muted)] hover:text-[var(--foreground)] hover:border-white/20 transition-colors rounded-sm"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
@@ -408,7 +409,7 @@ export function DashboardConsole({ data, isReadOnly = false, isReplay = false }:
               onClick={async () => {
                 const res = await fetch("/api/auth/logout", { method: "POST" });
                 if (res.ok) {
-                  window.location.href = "/";
+                  window.location.href = "/onboard";
                 }
               }}
               className="px-4 py-2 text-[11px] uppercase tracking-widest font-semibold border border-[var(--border)] text-[var(--foreground-muted)] hover:text-[var(--foreground)] hover:border-white/20 transition-colors rounded-sm"

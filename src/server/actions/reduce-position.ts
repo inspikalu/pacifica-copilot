@@ -26,6 +26,7 @@ export async function reducePosition(input: {
         side: input.side === "LONG" ? "ask" : "bid",
         amount: String(amount),
         reduce_only: true,
+        slippage_percent: "0.5",
       },
       {
         account: account.pacificaAccount,
